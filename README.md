@@ -29,7 +29,10 @@ Deploy the stacks using following templates in following order
 5.	Inspection VPC.yml
 6.	TGW route modify.yml
 7.	3 EC2 Instances
+
+
 (Don’t change default parameters unless you want to customise.)
 Final template (3 EC2 Instances) is deployed to gain SSM access into the EC2 in VPC1 and VPC2 for testing. You cannot access EC2 in VPC3 via SSM. But can ping it for testing purpose. 
+
 You can try blocking the firewall rules and check the reachability. Communication between EC2 in VPC1 and EC2 in VPC3 has no bearing on the firewall. 
 (Public subnet used for reduce VPC endpoint cost and still access via SSM. If you plan to deploy in production please use VPC endpoints for SSM access and do not use public subnets with public IP addresses)
