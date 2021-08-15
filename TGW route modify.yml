@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  AWS CloudFormation Template to Create new TGW :
+
+Parameters:
+
+  TGWStackName:
+    Description: Stack name of the TGW. If unsure leave the default values.
+    Type: String
+    Default: TGW
+
+  InspectionVPCStackName:
+    Description: Stack name of the Inspection VPC. If unsure leave the default values.
+    Type: String
+    Default: InspectionVPC
+
+  VPC3StackName:
+    Description: Stack name of the Inspection VPC. If unsure leave the default values.
+    Type: String
+    Default: VPC3
+
+  VPC1StackName:
+    Description: Stack name of the Inspection VPC. If unsure leave the default values.
+    Type: String
+    Default: VPC1
+
+Resources:
+  TGWRouteVPC1:  
+    Type: AWS::EC2::TransitGatewayRoute
+    Properties: 
+      DestinationCidrBlock: 10.0.0.0/8
+      TransitGatewayAttachmentId: !ImportValue
+        'Fn::Sub': '${InspectionVPCStackName}-TGW-Att'
+      TransitGatewayRouteTableId: !ImportValue
+        'Fn::Sub': '${TGWStackName}-VPC1-RT'
+
+# 10.0.0.0/8 route to inspection VPC
+  TGWRouteVPC2:  
+    Type: AWS::EC2::TransitGatewayRoute
+    Properties: 
+      DestinationCidrBlock: 10.0.0.0/8
+      TransitGatewayAttachmentId: !ImportValue
+        'Fn::Sub': '${InspectionVPCStackName}-TGW-Att'
+      TransitGatewayRouteTableId: !ImportValue
+        'Fn::Sub': '${TGWStackName}-VPC2-RT'
+
+# Propogate VPC3 route to VPC1 RT
+  TGWRouteTablePropogationVPC3:     
+    Type: AWS::EC2::TransitGatewayRouteTablePropagation
+    Properties: 
+      TransitGatewayAttachmentId: !ImportValue
+        'Fn::Sub': '${VPC3StackName}-TGW-Att'
+      TransitGatewayRouteTableId: !ImportValue
+        'Fn::Sub': '${TGWStackName}-VPC1-RT'
+
+# Propogate VPC1 route to VPC3 RT
+  TGWRouteTablePropogationVPC1:     
+    Type: AWS::EC2::TransitGatewayRouteTablePropagation
+    Properties: 
+      TransitGatewayAttachmentId: !ImportValue
+        'Fn::Sub': '${VPC1StackName}-TGW-Att'
+      TransitGatewayRouteTableId: !ImportValue
+        'Fn::Sub': '${TGWStackName}-VPC3-RT'

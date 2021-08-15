@@ -1,0 +1,135 @@
+Description:  Deploys EC2 instances for testing
+
+Parameters:
+  
+  LatestAmiId:
+    Type:  'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+
+  VPC1StackName:
+    Description: VPC1 stack name. Leave default if not sure
+    Type: String
+    Default: VPC1
+
+  VPC2StackName:
+    Description: VPC2 stack name. Leave default if not sure
+    Type: String
+    Default: VPC2
+
+  VPC3StackName:
+    Description: VPC3 stack name. Leave default if not sure
+    Type: String
+    Default: VPC3
+
+Resources:
+
+  IAMRoleSSM:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: SSM_access
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+  SSMInstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties: 
+      InstanceProfileName: SSM_access
+      Path: "/"
+      Roles: 
+        - Ref: "IAMRoleSSM"
+        
+  Ec2Instance1: 
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: !Ref 'LatestAmiId'
+      InstanceType: t2.micro
+      NetworkInterfaces:
+        - GroupSet:
+          - !ImportValue 
+              'Fn::Sub': '${VPC1StackName}-PermitAllSG' 
+          AssociatePublicIpAddress: "true"
+          DeviceIndex: "0"
+          DeleteOnTermination: 'true'
+          SubnetId: !ImportValue
+           'Fn::Sub': '${VPC1StackName}-Public2a'
+          PrivateIpAddress: 10.191.10.10
+          Description: '${VPC1StackName}-Public2a-ENI'
+      IamInstanceProfile: SSM_access
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y httpd.x86_64
+          systemctl start httpd.service
+          systemctl enable httpd.service
+          echo "Hello World from $(hostname -f)!" > /var/www/html/index.html
+      Tags:
+        - Key: Name
+          Value: !Sub "${VPC1StackName}-EC2-SSM"
+
+  Ec2Instance2: 
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: !Ref 'LatestAmiId'
+      InstanceType: t2.micro
+      NetworkInterfaces:
+        - GroupSet:
+          - !ImportValue 
+              'Fn::Sub': '${VPC2StackName}-PermitAllSG' 
+          AssociatePublicIpAddress: "true"
+          DeviceIndex: "0"
+          DeleteOnTermination: 'true'
+          SubnetId: !ImportValue
+           'Fn::Sub': '${VPC2StackName}-Public2a'
+          PrivateIpAddress: 10.192.10.10
+          Description: '${VPC2StackName}-Public2a-ENI'
+      IamInstanceProfile: SSM_access
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y httpd.x86_64
+          systemctl start httpd.service
+          systemctl enable httpd.service
+          echo "Hello World from $(hostname -f)!" > /var/www/html/index.html
+      Tags:
+        - Key: Name
+          Value: !Sub "${VPC2StackName}-EC2-SSM"
+
+  Ec2Instance3: 
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: !Ref 'LatestAmiId'
+      InstanceType: t2.micro
+      NetworkInterfaces:
+        - GroupSet:
+          - !ImportValue 
+              'Fn::Sub': '${VPC3StackName}-PermitAllSG' 
+          AssociatePublicIpAddress: "true"
+          DeviceIndex: "0"
+          DeleteOnTermination: 'true'
+          SubnetId: !ImportValue
+           'Fn::Sub': '${VPC3StackName}-Public2a'
+          PrivateIpAddress: 10.193.10.10
+          Description: '${VPC3StackName}-Public2a-ENI'
+      IamInstanceProfile: SSM_access
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y httpd.x86_64
+          systemctl start httpd.service
+          systemctl enable httpd.service
+          echo "Hello World from $(hostname -f)!" > /var/www/html/index.html
+      Tags:
+        - Key: Name
+          Value: !Sub "${VPC3StackName}-EC2-NO-SSM"

@@ -1,0 +1,112 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  AWS CloudFormation Template to Create new TGW. If not sure use default stack name.
+
+Parameters:
+  StackName:
+    Description: Same name as the Name of the allocated to Stack - It is a must to name it as right. Future references will be based on this.
+    Type: String
+    Default: TGW
+
+  WorkstreemName:
+    Description: Workstream name that is prefixed to resource names
+    Type: String
+    Default: POC-TGW
+
+  EnvName:
+    Description: An environment name that will be prefixed to resource names
+    Type: String
+    AllowedValues:
+      - dev
+      - sit
+      - uat
+      - prd
+      - pts
+    Default: dev
+
+Resources:
+  TransitGateway:
+    Type: "AWS::EC2::TransitGateway"
+    Properties:
+      AmazonSideAsn: 65520
+      Description: "TGW Test"
+      AutoAcceptSharedAttachments: "enable"
+      DefaultRouteTableAssociation: "enable"
+      DnsSupport: "enable"
+      VpnEcmpSupport: "enable"
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} TGW
+        - Key: SecurityDomain
+          Value: trusted
+
+  TransitGatewayRouteTable1:
+    Type: AWS::EC2::TransitGatewayRouteTable
+    Properties:
+      TransitGatewayId: !Ref TransitGateway
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} VPC1-RT
+        - Key: SecurityDomain
+          Value: trusted
+
+  TransitGatewayRouteTable2:
+    Type: AWS::EC2::TransitGatewayRouteTable
+    Properties:
+      TransitGatewayId: !Ref TransitGateway
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} VPC2-RT
+        - Key: SecurityDomain
+          Value: trusted
+
+  TransitGatewayRouteTable3:
+    Type: AWS::EC2::TransitGatewayRouteTable
+    Properties:
+      TransitGatewayId: !Ref TransitGateway
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} VPC3-RT
+        - Key: SecurityDomain
+          Value: trusted
+
+  TransitGatewayRouteTable5:
+    Type: AWS::EC2::TransitGatewayRouteTable
+    Properties:
+      TransitGatewayId: !Ref TransitGateway
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} InspectionVPC-RT
+        - Key: SecurityDomain
+          Value: trusted
+
+Outputs:
+  TransitGateway:
+    Description: A reference to the created TransitGateway
+    Value: !Ref TransitGateway
+    Export:
+      Name: !Sub "${StackName}"
+
+  TransitGatewayRouteTable1:
+    Description: A reference to the created RT1
+    Value: !Ref TransitGatewayRouteTable1
+    Export:
+      Name: !Sub "${AWS::StackName}-VPC1-RT"
+
+  TransitGatewayRouteTable2:
+    Description: A reference to the created RT2
+    Value: !Ref TransitGatewayRouteTable2
+    Export:
+      Name: !Sub "${AWS::StackName}-VPC2-RT"
+
+  TransitGatewayRouteTable3:
+    Description: A reference to the created RT3
+    Value: !Ref TransitGatewayRouteTable3
+    Export:
+      Name: !Sub "${AWS::StackName}-VPC3-RT"
+
+  TransitGatewayRouteTable5:
+    Description: A reference to the created RT5
+    Value: !Ref TransitGatewayRouteTable5
+    Export:
+      Name: !Sub "${AWS::StackName}-InspectionVPC-RT"

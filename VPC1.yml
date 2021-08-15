@@ -1,0 +1,694 @@
+Description:  Deploys VPC1, with 3 security zones accross all AZs. 
+
+Parameters:
+  WorkstreemName:
+    Description: Workstream name that is prefixed to resource names
+    Type: String
+    Default: VPC1
+
+  ThisStackName:
+    Description: Stack name of thsi AWS Stack. If Unsure, dont change the value below and leave default
+    Type: String
+    Default: VPC1
+
+  TGWStackNameParameter:
+    Description: Transit Gateway (TGW) stack name
+    Type: String
+    Default: TGW
+
+  EnvName:
+    Description: An environment name that will be prefixed to resource names
+    Type: String
+    AllowedValues:
+      - dev
+      - sit
+      - uat
+      - prd
+      - pts
+    Default: dev
+
+  VpcCIDR:
+    Description: Please enter the IP range (CIDR notation) for this VPC
+    Type: String
+    Default: 10.191.0.0/16
+
+  VPCDomainName:
+    Type: String
+    Default: 'aws.vagira.internal'
+    Description: Optional - Specify the VPC domain name, or leave as default.
+
+  Public2aCIDR:
+    Description: Please enter the IP range (CIDR notation) for the public subnet in the ap-southeast-2a (apse2-az1) Availability Zone
+    Type: String
+    Default: 10.191.10.0/24
+
+  Public2bCIDR:
+    Description: Please enter the IP range (CIDR notation) for the public subnet in the ap-southeast-2b (apse2-az3) Availability Zone
+    Type: String
+    Default: 10.191.11.0/24
+
+  Public2cCIDR:
+    Description: Please enter the IP range (CIDR notation) for the public subnet in the ap-southeast-2c (apse2-az2) Availability Zone
+    Type: String
+    Default: 10.191.12.0/24
+
+  Private2aCIDR:
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the ap-southeast-2a (apse2-az1) Availability Zone
+    Type: String
+    Default: 10.191.20.0/24
+
+  Private2bCIDR:
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the ap-southeast-2b (apse2-az3) Availability Zone
+    Type: String
+    Default: 10.191.21.0/24
+
+  Private2cCIDR:
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the ap-southeast-2c (apse2-az2) Availability Zone
+    Type: String
+    Default: 10.191.22.0/24
+
+  Data2aCIDR:
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the ap-southeast-2a (apse2-az1) Availability Zone
+    Type: String
+    Default: 10.191.30.0/24
+
+  Data2bCIDR:
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the ap-southeast-2b (apse2-az3) Availability Zone
+    Type: String
+    Default: 10.191.31.0/24
+
+  Data2cCIDR:
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the ap-southeast-2c (apse2-az2) Availability Zone
+    Type: String
+    Default: 10.191.32.0/24
+
+  PrivateTGW2aCIDR:
+    Description: Please enter the IP range (CIDR notation) for the Private TGW subnet in the ap-southeast-2a (apse2-az1) Availability Zone
+    Type: String
+    Default: 10.191.90.0/28
+
+  PrivateTGW2bCIDR:
+    Description: Please enter the IP range (CIDR notation) for the Private TGW subnet in the ap-southeast-2b (apse2-az3) Availability Zone
+    Type: String
+    Default: 10.191.91.0/28
+
+  PrivateTGW2cCIDR:
+    Description: Please enter the IP range (CIDR notation) for the Private TGW subnet in the ap-southeast-2c (apse2-az2) Availability Zone
+    Type: String
+    Default: 10.191.92.0/28
+
+Resources:
+  # Create VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Ref WorkstreemName
+
+  # Create InternetGW
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} Internet GW (apse-2a)
+        - Key: Environment
+          Value: !Sub ${EnvName}
+        - Key: SecurityDomain
+          Value: Public
+
+  # IGW association
+  AttachInternetGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Create Public Subnets
+  Public2a:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: !Ref Public2aCIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} Public Subnet (apse-2a)
+        - Key: Environment
+          Value: !Sub ${EnvName}
+        - Key: SecurityDomain
+          Value: Public
+
+  Public2b:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 1, !GetAZs  '' ]
+      CidrBlock: !Ref Public2bCIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} Public Subnet (apse-2b)
+        - Key: Environment
+          Value: !Sub ${EnvName}
+        - Key: SecurityDomain
+          Value: Public
+
+  Public2c:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 2, !GetAZs  '' ]
+      CidrBlock: !Ref Public2cCIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} Public Subnet (apse-2c)
+        - Key: Environment
+          Value: !Sub ${EnvName}
+        - Key: SecurityDomain
+          Value: Public
+        
+  # Create Private Subnets
+  Private2a:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs  '' ]
+      CidrBlock: !Ref Private2aCIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} Private Subnet (apse-2a)
+        - Key: Environment
+          Value: !Sub ${EnvName}
+        - Key: SecurityDomain
+          Value: Private
+
+  Private2b:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 1, !GetAZs  '' ]
+      CidrBlock: !Ref Private2bCIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} Private Subnet (apse-2b)
+        - Key: Environment
+          Value: !Sub ${EnvName}
+        - Key: SecurityDomain
+          Value: Private
+ 
+  Private2c:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 2, !GetAZs  '' ]
+      CidrBlock: !Ref Private2cCIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} Private Subnet (apse-2c)
+        - Key: Environment
+          Value: !Sub ${EnvName}
+        - Key: SecurityDomain
+          Value: Private
+
+  # Create Data Subnets
+  Data2a:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs  '' ]
+      CidrBlock: !Ref Data2aCIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} Data Subnet (apse-2a)
+        - Key: Environment
+          Value: !Sub ${EnvName}
+        - Key: SecurityDomain
+          Value: Data
+
+  Data2b:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 1, !GetAZs  '' ]
+      CidrBlock: !Ref Data2bCIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} Data Subnet (apse-2b)
+        - Key: Environment
+          Value: !Sub ${EnvName}
+        - Key: SecurityDomain
+          Value: Data
+
+  Data2c:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 2, !GetAZs  '' ]
+      CidrBlock: !Ref Data2cCIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} Data Subnet (apse-2c)
+
+  # Create TGW Private Subnets
+  PrivateTGW2a:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs  '' ]
+      CidrBlock: !Ref PrivateTGW2aCIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} Private TGW Subnet (apse-2a)
+        - Key: Environment
+          Value: !Sub ${EnvName}
+        - Key: SecurityDomain
+          Value: Private
+
+  PrivateTGW2b:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 1, !GetAZs  '' ]
+      CidrBlock: !Ref PrivateTGW2bCIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} Private TGW Subnet (apse-2b)
+        - Key: Environment
+          Value: !Sub ${EnvName}
+        - Key: SecurityDomain
+          Value: Private
+ 
+  PrivateTGW2c:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 2, !GetAZs  '' ]
+      CidrBlock: !Ref PrivateTGW2cCIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} Private TGW Subnet (apse-2c)
+        - Key: Environment
+          Value: !Sub ${EnvName}
+        - Key: SecurityDomain
+          Value: Private
+
+  # Create Public route table
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} Public Routes
+        - Key: Environment
+          Value: !Sub ${EnvName}
+        - Key: SecurityDomain
+          Value: Public
+
+  # Create Private route tables
+  PrivateRouteTable2a:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} Private Routes 2a
+        - Key: Environment
+          Value: !Sub ${EnvName}
+        - Key: SecurityDomain
+          Value: Private
+
+  PrivateRouteTable2b:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} Private Routes 2b
+        - Key: Environment
+          Value: !Sub ${EnvName}
+        - Key: SecurityDomain
+          Value: Private
+
+  PrivateRouteTable2c:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} Private Routes 2c
+        - Key: Environment
+          Value: !Sub ${EnvName}
+        - Key: SecurityDomain
+          Value: Private
+
+  # Create Data route table
+  DataRouteTable2a:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} Data Routes 2a
+        - Key: Environment
+          Value: !Sub ${EnvName}
+        - Key: SecurityDomain
+          Value: Data
+
+  DataRouteTable2b:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} Data Routes 2b
+        - Key: Environment
+          Value: !Sub ${EnvName}
+        - Key: SecurityDomain
+          Value: Data
+
+  DataRouteTable2c:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} Data Routes 2c
+        - Key: Environment
+          Value: !Sub ${EnvName}
+        - Key: SecurityDomain
+          Value: Data
+
+  # Create DHCP Options Set
+  VpcDhcpOpts:
+    Type: AWS::EC2::DHCPOptions
+    Properties:
+      DomainName: !Ref 'VPCDomainName'
+      DomainNameServers:
+        - AmazonProvidedDNS
+
+  # Attach DHCP Options to VPC
+  VpcDhcpAssoc:
+    Type: AWS::EC2::VPCDHCPOptionsAssociation
+    Properties:
+      VpcId: !Ref VPC
+      DhcpOptionsId: !Ref 'VpcDhcpOpts'
+
+  # Create route table associations  
+  PublicSubnet2aRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref Public2a
+
+  PublicSubnet2bRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref Public2b
+       
+  PublicSubnet2cRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref Public2c
+
+  PrivateSubnet2aRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2a
+      SubnetId: !Ref Private2a
+
+  PrivateSubnet2bRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2b
+      SubnetId: !Ref Private2b
+
+  PrivateSubnet2cRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2c
+      SubnetId: !Ref Private2c
+
+  PrivateSubnetTGW2aRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2a
+      SubnetId: !Ref PrivateTGW2a
+
+  PrivateSubnetTGW2bRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2b
+      SubnetId: !Ref PrivateTGW2b
+
+  PrivateSubnetTGW2cRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2c
+      SubnetId: !Ref PrivateTGW2c
+
+  DataSubnet2aRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref DataRouteTable2a
+      SubnetId: !Ref Data2a
+
+  DataSubnet2bRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref DataRouteTable2b
+      SubnetId: !Ref Data2b
+
+  DataSubnet2cRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref DataRouteTable2c
+      SubnetId: !Ref Data2c
+
+  # Security Group Place holder
+  NoIngressSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "no-ingress-sg"
+      GroupDescription: "Security group with no ingress rule"
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${WorkstreemName}-IngressOnly-SG"
+        - Key: Environment
+          Value: !Sub ${EnvName}
+        - Key: SecurityDomain
+          Value: Data
+
+  PermitTCPSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "ssh-icmp-sg"
+      GroupDescription: "permit TCP all Security group"
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 0
+        ToPort: 65535
+        CidrIp: 10.0.0.0/8
+      - IpProtocol: icmp
+        FromPort: 8
+        ToPort: -1
+        CidrIp: 10.0.0.0/8
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 0.0.0.0/8
+      Tags:
+        - Key: Name
+          Value: !Sub "${WorkstreemName}-SSH-ICMP-SG"
+        - Key: Environment
+          Value: !Sub ${EnvName}
+        - Key: SecurityDomain
+          Value: Data
+
+  PermitAllSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "Permit-all"
+      GroupDescription: "permit all SG"
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+      - IpProtocol: -1
+        CidrIp: 10.0.0.0/8
+      Tags:
+        - Key: Name
+          Value: !Sub "${WorkstreemName}-permit-all-SG"
+        - Key: Environment
+          Value: !Sub ${EnvName}
+        - Key: SecurityDomain
+          Value: Private
+
+  # Create TGW attachment
+  TransitGatewayAttachment1: 
+    Type: AWS::EC2::TransitGatewayAttachment
+    Properties: 
+      SubnetIds: [ !Ref PrivateTGW2a, !Ref PrivateTGW2b, !Ref PrivateTGW2c ]
+      Tags:
+        - Key: Name
+          Value: !Sub ${WorkstreemName} Private Subnet attachment
+      TransitGatewayId: !ImportValue
+        'Fn::Sub': '${TGWStackNameParameter}'
+      VpcId: !Ref VPC
+
+  # Create TGW RT Association
+  TransitGatewayRouteTableAssociation1:
+    Type: AWS::EC2::TransitGatewayRouteTableAssociation
+    Properties: 
+      TransitGatewayAttachmentId: !Ref TransitGatewayAttachment1
+      TransitGatewayRouteTableId: !ImportValue
+        'Fn::Sub': '${TGWStackNameParameter}-VPC1-RT'
+
+  # Adding routes to route tables 
+  InternetGatewayRoute:
+   Type: AWS::EC2::Route
+   DependsOn: InternetGateway
+   Properties:
+      RouteTableId:
+        Ref: PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: InternetGateway 
+
+  # Only adding this route in POC
+  InternalRoutePublicRT1:
+   Type: AWS::EC2::Route
+   DependsOn: TransitGatewayAttachment1
+   Properties:
+      RouteTableId:
+        Ref: PublicRouteTable
+      DestinationCidrBlock: 10.0.0.0/8
+      TransitGatewayId: !ImportValue
+        'Fn::Sub': '${TGWStackNameParameter}'
+            
+  InternalRoutePrivateRT2:
+   Type: AWS::EC2::Route
+   DependsOn: TransitGatewayAttachment1
+   Properties:
+      RouteTableId:
+        Ref: PrivateRouteTable2a
+      DestinationCidrBlock: 10.0.0.0/8
+      TransitGatewayId:  !ImportValue
+        'Fn::Sub': '${TGWStackNameParameter}'
+
+  InternalRoutePrivateRT2b:
+   Type: AWS::EC2::Route
+   DependsOn: TransitGatewayAttachment1
+   Properties:
+      RouteTableId:
+        Ref: PrivateRouteTable2b
+      DestinationCidrBlock: 10.0.0.0/8
+      TransitGatewayId:  !ImportValue
+        'Fn::Sub': '${TGWStackNameParameter}'
+
+  InternalRoutePrivateRT2c:
+   Type: AWS::EC2::Route
+   DependsOn: TransitGatewayAttachment1
+   Properties:
+      RouteTableId:
+        Ref: PrivateRouteTable2c
+      DestinationCidrBlock: 10.0.0.0/8
+      TransitGatewayId:  !ImportValue
+        'Fn::Sub': '${TGWStackNameParameter}'
+
+Outputs:
+  VPC:
+    Description: A reference to the created VPC
+    Value: !Ref VPC
+    Export:
+      Name: !Sub "${ThisStackName}-VPC"
+
+  PublicSubnet2a:
+    Description: A list of the Public subnet2a
+    Value: !Ref Public2a
+    Export:
+      Name: !Sub "${ThisStackName}-Public2a"
+
+  PrivateSubnet2a:
+    Description: A list of the Private subnet2a
+    Value: !Ref Private2a
+    Export:
+      Name: !Sub "${ThisStackName}-Private2a"
+
+  PrivateSubnet2b:
+    Description: A list of the Private subnet2b
+    Value: !Ref Private2b
+    Export:
+      Name: !Sub "${ThisStackName}-Private2b"
+      
+  PrivateSubnet2c:
+    Description: A list of the Private subnet2c
+    Value: !Ref Private2c
+    Export:
+      Name: !Sub "${ThisStackName}-Private2c"      
+
+  PrivateTGWSubnet2a:
+    Description: A list of the Private TGW subnet2a
+    Value: !Ref PrivateTGW2a
+    Export:
+      Name: !Sub "${ThisStackName}-PrivateTGW2a"
+
+  PrivateTGWSubnet2b:
+    Description: A list of the Private TGW subnet2b
+    Value: !Ref PrivateTGW2b
+    Export:
+      Name: !Sub "${ThisStackName}-PrivateTGW2b"
+      
+  PrivateTGWSubnet2c:
+    Description: A list of the Private TGW subnet2c
+    Value: !Ref PrivateTGW2c
+    Export:
+      Name: !Sub "${ThisStackName}-PrivateTGW2c" 
+
+  PrivateRouteTable2a:
+    Description: A reference to PrivateRouteTable
+    Value: !Ref PrivateRouteTable2a
+    Export:
+      Name: !Sub "${ThisStackName}-PrivateRouteTable2a"  
+
+  PrivateRouteTable2b:
+    Description: A reference to PrivateRouteTable
+    Value: !Ref PrivateRouteTable2b
+    Export:
+      Name: !Sub "${ThisStackName}-PrivateRouteTable2b"
+
+  PrivateRouteTable2c:
+    Description: A reference to PrivateRouteTable
+    Value: !Ref PrivateRouteTable2c
+    Export:
+      Name: !Sub "${ThisStackName}-PrivateRouteTable2c" 
+
+  TGWAttachment1:
+    Description: A reference to TGW Attachment
+    Value: !Ref TransitGatewayAttachment1
+    Export:
+      Name: !Sub "${ThisStackName}-TGW-Att"
+
+  PermitAllSecurityGroup:
+    Description: A reference to PermitAllSecurityGroup
+    Value: !Ref PermitAllSecurityGroup
+    Export:
+      Name: !Sub "${ThisStackName}-PermitAllSG"
