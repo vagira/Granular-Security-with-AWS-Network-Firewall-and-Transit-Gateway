@@ -14,7 +14,9 @@ Objectives tested –
 •	EC2 instance in VPC1 and EC2 instance in VPC2 can communicate via AWS Network Firewall in Inspection VPC.
 •	EC2 instance in VPC1 and EC2 instance in VPC3 can communicate without AWS Network Firewall in Inspection VPC. 
 •	EC2 instance in VPC2 and EC2 instance in VPC 3 has no communication at all. i.e. VPC2 and VPC3 are completely isolated.
-   
+![AWS TGW and FW security](https://user-images.githubusercontent.com/60869393/129464196-0ecf653a-4a3c-49a8-b7df-216eae69ae1e.jpg)
+
+
 For modularity POC is divided into multiple templates. All you need to do is to deploy them in following order 
 Deployment instructions
 Deploy the stacks using following templates in following order
